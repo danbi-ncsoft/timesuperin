@@ -30,14 +30,15 @@ model.timesuperin <-function(data,model.type='lm',formula=NULL,step.fun=F,period
   if(step.fun==T){
     formula.lm<-step(lm(formula.timesuperin,data=train),direction="both")$call$formula
     if(model.type=="rlm"){
-      lm_model<-MASS::rlm(formula.lm,data=train)
+      lm_model<-MASS::rlm(formula.lm,data=subset(train, select=-c(time)))
     } else if(model.type=="lm") {
-      lm_model<-lm(formula.lm,data=train)
+      lm_model<-lm(formula.lm,data=subset(train, select=-c(time)))
     } else {
       warning(paste('model.type=',model.type,"is not supported.","Try 'lm' or 'rlm'" ,"Used model.type default 'lm'"))
     }
     if(formula.lm[[3]][length(formula.lm[[3]])]=="trend_value()"){
       result<-list(model=model.type,
+                   formula=formula.lm,
                    lm_model=lm_model,
                    model_summary=summary(lm_model),
                    time_interval=data_info$time_interval,
@@ -46,6 +47,7 @@ model.timesuperin <-function(data,model.type='lm',formula=NULL,step.fun=F,period
                    trend=c("TRUE"))
     }else{
       result<-list(model=model.type,
+                   formula=formula.lm,
                    lm_model=lm_model,
                    model_summary=summary(lm_model),
                    time_interval=data_info$time_interval,
@@ -54,11 +56,12 @@ model.timesuperin <-function(data,model.type='lm',formula=NULL,step.fun=F,period
   }else if (step.fun==F){
     formula.lm<-formula.timesuperin
     if(model.type=="rlm"){
-      lm_model<-MASS::rlm(formula.lm,data=train)
+      lm_model<-MASS::rlm(formula.lm,data=subset(train, select=-c(time)))
     } else{
-      lm_model<-lm(formula.lm,data=train)
+      lm_model<-lm(formula.lm,data=subset(train, select=-c(time)))
     }
     result<-list(model=model.type,
+                 formula=formula.lm,
                  lm_model=lm_model,
                  model_summary=summary(lm_model),
                  time_interval=data_info$time_interval,
