@@ -12,127 +12,172 @@
 
 #' @importFrom MASS rlm
 #' @import Rcpp
-model.timesuperin <-function(data,model.type='lm',formula=NULL,step.fun=F,period=24,
-                              changepoints=NULL,
-                              changepoint.prior.scale=0.05){
-  if (!is.null(formula)){
-    formula.timesuperin=as.formula(paste(formula[[2]] , "~" , formula[3],"+time_value","+trend_value"))
-  } else {
-    formula.timesuperin=as.formula(paste(names(data)[2],"~."))
-  }
-
-
-  data_info<-Data_Handling(data,value=gsub("()","",formula.timesuperin[2]),
-                           period=period,changepoints=changepoints,
-                           changepoint.prior.scale=changepoint.prior.scale)
-
-  train<-data_info[[1]]
-  if(step.fun==T){
-    formula.lm<-step(lm(formula.timesuperin,data=train),direction="both")$call$formula
-    if(model.type=="rlm"){
-      lm_model<-MASS::rlm(formula.lm,data=subset(train, select=-c(time)))
-    } else if(model.type=="lm") {
-      lm_model<-lm(formula.lm,data=subset(train, select=-c(time)))
+model.timesuperin <-
+  function(data,
+           model.type = 'lm',
+           formula = NULL,
+           step.fun = F,
+           period = 24,
+           changepoints = NULL,
+           changepoint.prior.scale = 0.05) {
+    if (!is.null(formula)) {
+      formula.timesuperin = as.formula(paste(formula[[2]] , "~" , formula[3], "+time_value", "+trend_value"))
     } else {
-      warning(paste('model.type=',model.type,"is not supported.","Try 'lm' or 'rlm'" ,"Used model.type default 'lm'"))
+      formula.timesuperin = as.formula(paste(names(data)[2], "~."))
     }
-    if(formula.lm[[3]][length(formula.lm[[3]])]=="trend_value()"){
-      result<-list(model=model.type,
-                   formula=formula.lm,
-                   lm_model=lm_model,
-                   model_summary=summary(lm_model),
-                   time_interval=data_info$time_interval,
-                   period=data_info$time_period,
-                   trend_params=data_info$trend_param,
-                   trend=c("TRUE"))
-    }else{
-      result<-list(model=model.type,
-                   formula=formula.lm,
-                   lm_model=lm_model,
-                   model_summary=summary(lm_model),
-                   time_interval=data_info$time_interval,
-                   trend=c("FALSE"))
-    }
-  }else if (step.fun==F){
-    formula.lm<-formula.timesuperin
-    if(model.type=="rlm"){
-      lm_model<-MASS::rlm(formula.lm,data=subset(train, select=-c(time)))
+    
+    
+    data_info <-
+      Data_Handling(
+        data,
+        value = gsub("()", "", formula.timesuperin[2]),
+        period = period,
+        changepoints = changepoints,
+        changepoint.prior.scale = changepoint.prior.scale
+      )
+    
+    train <- data_info[[1]]
+    if (step.fun == T) {
+      formula.lm <-
+        step(lm(formula.timesuperin, data = train), direction = "both")$call$formula
+      if (model.type == "rlm") {
+        lm_model <- MASS::rlm(formula.lm, data = subset(train, select = -c(time)))
+      } else if (model.type == "lm") {
+        lm_model <- lm(formula.lm, data = subset(train, select = -c(time)))
+      } else {
+        warning(
+          paste(
+            'model.type=',
+            model.type,
+            "is not supported.",
+            "Try 'lm' or 'rlm'" ,
+            "Used model.type default 'lm'"
+          )
+        )
+      }
+      if (formula.lm[[3]][length(formula.lm[[3]])] == "trend_value()") {
+        result <- list(
+          model = model.type,
+          formula = formula.lm,
+          lm_model = lm_model,
+          model_summary = summary(lm_model),
+          time_interval = data_info$time_interval,
+          period = data_info$time_period,
+          trend_params = data_info$trend_param,
+          trend = c("TRUE")
+        )
+      } else{
+        result <- list(
+          model = model.type,
+          formula = formula.lm,
+          lm_model = lm_model,
+          model_summary = summary(lm_model),
+          time_interval = data_info$time_interval,
+          trend = c("FALSE")
+        )
+      }
+    } else if (step.fun == F) {
+      formula.lm <- formula.timesuperin
+      if (model.type == "rlm") {
+        lm_model <- MASS::rlm(formula.lm, data = subset(train, select = -c(time)))
+      } else{
+        lm_model <- lm(formula.lm, data = subset(train, select = -c(time)))
+      }
+      result <- list(
+        model = model.type,
+        formula = formula.lm,
+        lm_model = lm_model,
+        model_summary = summary(lm_model),
+        time_interval = data_info$time_interval,
+        period = data_info$time_period,
+        trend_params = data_info$trend_param,
+        trend = c("TRUE")
+      )
     } else{
-      lm_model<-lm(formula.lm,data=subset(train, select=-c(time)))
+      warning(
+        paste(
+          'step.fun=',
+          step.fun,
+          "is not supported.",
+          "Try TRUE or FALSE" ,
+          "Used step.fun default 'FALSE'"
+        )
+      )
     }
-    result<-list(model=model.type,
-                 formula=formula.lm,
-                 lm_model=lm_model,
-                 model_summary=summary(lm_model),
-                 time_interval=data_info$time_interval,
-                 period=data_info$time_period,
-                 trend_params=data_info$trend_param,
-                 trend=c("TRUE"))
-  }else{
-    warning(paste('step.fun=',step.fun,"is not supported.","Try TRUE or FALSE" ,"Used step.fun default 'FALSE'"))
+    return(result)
   }
-  return(result)
-}
 
 
 
 ###시간 변수 생성###
 #입력데이터들의 형식을 받아 시간 format으로 변경
 #' @importFrom stringr str_detect
-format_time <- function(data, index='time') {
-  if (class(data[[index]])[1] == "POSIXlt" | class(data[[index]])[1] == "POSIXct" ) {
+format_time <- function(data, index = 'time') {
+  if (class(data[[index]])[1] == "POSIXlt" |
+      class(data[[index]])[1] == "POSIXct") {
     return(data)
   }
-  if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} \\+\\d{4}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H:%M:%S", tz="UTC"))
+  if (stringr::str_detect(data[[index]][1],
+                          "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} \\+\\d{4}$")) {
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H:%M:%S", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H:%M", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%Y-%m-%d %H:%M", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{1}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%Y-%m-%d %H", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%Y-%m-%d %H", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}\\d{2}\\d{2} \\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y%m%d %H", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%Y%m%d %H", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2}$")) {
     data[[index]] <- as.Date(data[[index]], "%Y-%m-%d")
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{2}/\\d{2}/\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%m/%d/%y", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%m/%d/%y", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{2}/\\d{2}/\\d{4}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%m/%d/%Y", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%m/%d/%Y", tz = "UTC"))
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}\\d{2}\\d{2}$")) {
     data[[index]] <- as.Date(data[[index]], "%Y%m%d")
   }
   else if (stringr::str_detect(data[[index]][1], "^\\d{4}/\\d{2}/\\d{2}/\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y/%m/%d/%H", tz="UTC"))
+    data[[index]] <-
+      as.POSIXct(strptime(data[[index]], format = "%Y/%m/%d/%H", tz = "UTC"))
   }
-  else if( stringr::str_detect(data[[index]][1],"^\\d{4}-\\d{2}$")){
-    data[[index]] <- as.Date(paste0((data[[index]]),"-01"),"%Y-%m-%d")
+  else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}$")) {
+    data[[index]] <- as.Date(paste0((data[[index]]), "-01"), "%Y-%m-%d")
   }
-  else if( stringr::str_detect(data[[index]][1],"^\\d{4}/\\d{2}$")){
-    data[[index]] <- as.Date(paste0((data[[index]]),"/01"),"%Y/%m/%d")
+  else if (stringr::str_detect(data[[index]][1], "^\\d{4}/\\d{2}$")) {
+    data[[index]] <- as.Date(paste0((data[[index]]), "/01"), "%Y/%m/%d")
   }
-
+  
   return(data)
 }
 
 
 ###연,월,일,시,분,초 구분 함수###
 #입력데이터의 시간 간격을 구분
-get_gran = function(data, index='time') {
+get_gran = function(data, index = 'time') {
   n = length(data[[index]])
-  gran = round(difftime(max(data[[index]]),sort(data[[index]], partial=n-1)[n-1], units="secs"))
-  if (gran >= 2419200){
+  gran = round(difftime(max(data[[index]]), sort(data[[index]], partial =
+                                                   n - 1)[n - 1], units = "secs"))
+  if (gran >= 2419200) {
     return("mon")
   }
   else if (gran >= 86400) {
@@ -156,21 +201,21 @@ get_gran = function(data, index='time') {
 #시간 구분이 일단위 : 01~31
 #시간 구분이 시간단위 : 01~24
 #시간 구분이 초단위 : 01~60
-timevalue<-function(data){
-  if (get_gran(data)=="mon"){
-    return(substr(data[['time']],6,7))
+timevalue <- function(data) {
+  if (get_gran(data) == "mon") {
+    return(substr(data[['time']], 6, 7))
   }
-  else if (get_gran(data)=="day"){
-    return(substr(data[['time']],9,10))
+  else if (get_gran(data) == "day") {
+    return(substr(data[['time']], 9, 10))
   }
-  else if (get_gran(data)=="hr"){
-    return(substr(data[['time']],12,13))
+  else if (get_gran(data) == "hr") {
+    return(substr(data[['time']], 12, 13))
   }
-  else if (get_gran(data)=="min"){
-    return(substr(data[['time']],15,16))
+  else if (get_gran(data) == "min") {
+    return(substr(data[['time']], 15, 16))
   }
-  else if (get_gran(data)=="sec"){
-    return(substr(data[['time']],18,19))
+  else if (get_gran(data) == "sec") {
+    return(substr(data[['time']], 18, 19))
   }
 }
 
@@ -185,43 +230,58 @@ timevalue<-function(data){
 #changepoint.prior.scale : 변경점 선택의 유연성을 조정하는 변수, 큰값은 많은수를 작은값은 적은수의 변경점 허용
 
 #' @importFrom dplyr arrange
-Data_Handling<-function(data,period=NULL,changepoints=NULL,value=NULL,
-                        n.changepoints=NULL,changepoint.prior.scale=NULL){
-
-  #시간데이터 입력 형식에 따른 시간 포맷으로 변경
-  data<-format_time(data)
-  #data[['time']]<-as.POSIXct(data[['time']])
-  data <- dplyr::arrange(data,data[['time']])
-  #트랜드 변수 생성#
-  if(!is.null(changepoints)){
-    n.changepoints<-length(changepoints)
-  }else{
-    n.changepoints<-c(25)
+Data_Handling <-
+  function(data,
+           period = NULL,
+           changepoints = NULL,
+           value = NULL,
+           n.changepoints = NULL,
+           changepoint.prior.scale = NULL) {
+    #시간데이터 입력 형식에 따른 시간 포맷으로 변경
+    data <- format_time(data)
+    #data[['time']]<-as.POSIXct(data[['time']])
+    data <- dplyr::arrange(data, data[['time']])
+    #트랜드 변수 생성#
+    if (!is.null(changepoints)) {
+      n.changepoints <- length(changepoints)
+    } else{
+      n.changepoints <- c(25)
+    }
+    m <- list(
+      value = value,
+      period = period,
+      changepoints = changepoints,
+      n.changepoints = n.changepoints,
+      seasonality.prior.scale = 10,
+      changepoint.prior.scale = changepoint.prior.scale,
+      y.scale = NULL,
+      t.scale = NULL,
+      changepoints.t = NULL,
+      params = list(),
+      history = data
+    )
+    
+    m <- mk.trend.parm(m)
+    data <- data.frame(data,
+                       time_value = as.factor(timevalue(data)),
+                       trend_value = predict_trend(m, data))
+    
+    #names(data)[2]<-c('value')
+    return(list(
+      data = data,
+      time_interval = get_gran(data),
+      time_period = period,
+      trend_param = list(
+        params = m$params,
+        start = m$start,
+        t.scale = m$t.scale,
+        y.scale = m$y.scale,
+        changepoints = m$changepoints,
+        changepoints.t = m$changepoints.t
+      )
+    ))
+    
   }
-  m <- list(
-    value=value,
-    period = period,
-    changepoints = changepoints,
-    n.changepoints = n.changepoints,
-    seasonality.prior.scale = 10,
-    changepoint.prior.scale = changepoint.prior.scale,
-    y.scale = NULL,
-    t.scale = NULL,
-    changepoints.t = NULL,
-    params = list(),
-    history = data
-  )
-
-  m<-mk.trend.parm(m)
-  data<-data.frame(data,time_value=as.factor(timevalue(data)),
-                   trend_value=predict_trend(m,data))
-
-  #names(data)[2]<-c('value')
-  return(list(data=data,time_interval=get_gran(data),time_period=period,
-              trend_param=list(params=m$params,start=m$start,t.scale=m$t.scale,
-                               y.scale=m$y.scale,changepoints=m$changepoints,changepoints.t=m$changepoints.t)))
-
-}
 
 
 
@@ -232,15 +292,20 @@ Data_Handling<-function(data,period=NULL,changepoints=NULL,value=NULL,
 #data : 예측 데이터
 #data의 시간값을 가지는 컬럼명은 time으로 지정해줘야함
 #trend_param : 예측시 사용되는 트랜드 생성 모수
-make.target_data<-function(data,trend=NULL,trend_param=NULL){
+make.target_data <- function(data,
+                             trend = NULL,
+                             trend_param = NULL) {
   #시간데이터 입력 형식에 따른 시간 포맷으로 변경
-  data<-format_time(data)
+  data <- format_time(data)
   #트렌드변수 생성
-  if(trend==T){
-    data<-data.frame(data,time_value=as.factor(timevalue(data)),
-                     trend_value=predict_trend(trend_param,data))
+  if (trend == T) {
+    data <- data.frame(
+      data,
+      time_value = as.factor(timevalue(data)),
+      trend_value = predict_trend(trend_param, data)
+    )
   } else {
-    data<-data.frame(data,time_value=as.factor(timevalue(data)))
+    data <- data.frame(data, time_value = as.factor(timevalue(data)))
   }
   return(data)
 }
@@ -260,16 +325,23 @@ make.target_data<-function(data,trend=NULL,trend_param=NULL){
 #' @param level Tolerance/confidence level.
 #' @keywords predict
 #' @export
-pred.table.timesuperin<-function(object,newdata,level=0.95){
-
-  if(object$trend==T){
-    target<-make.target_data(newdata,trend=object$trend,
-                             trend_param=object$trend_params)
-  }else if(object$trend==F){
-    target<-make.target_data(newdata,trend=object$trend)
+pred.table.timesuperin <- function(object, newdata, level = 0.95) {
+  if (object$trend == T) {
+    target <- make.target_data(newdata,
+                               trend = object$trend,
+                               trend_param = object$trend_params)
+  } else if (object$trend == F) {
+    target <- make.target_data(newdata, trend = object$trend)
   }
-  predic.table<-data.frame(time=target[['time']],
-                           predict(object$lm_model,newdata=target , interval='prediction',level=level))
+  predic.table <- data.frame(
+    time = target[['time']],
+    predict(
+      object$lm_model,
+      newdata = target ,
+      interval = 'prediction',
+      level = level
+    )
+  )
   return(predic.table)
 }
 
@@ -295,78 +367,126 @@ pred.table.timesuperin<-function(object,newdata,level=0.95){
 #' @keywords Detection
 #' @export
 
-detect_anormal.timesuperin<-function(object,newdata,level=0.95,value,direction='both',cumul.thre=NULL){
-
-  predic.table<-pred.table.timesuperin(object,newdata,level=level)
-  #신뢰구간, 신뢰수준 기본값은 prediction & 0.95
-  interval.type='prediction'
-  #outlier탐지
-  predic.table$value<-value
-  level<-level
-  #names(predic.table)[ncol(predic.table)]<-c('value')
-
-  #' @import ggplot2
-  #' @importFrom reshape melt
-  #하한,상한, 예측값, 실제값 plot
-  predic.table.melt<-reshape::melt(predic.table[,c('time','value','fit','upr','lwr')],id.vars='time')
-  plot.ex<-ggplot2::ggplot(predic.table.melt,ggplot2::aes(time,value,group=variable,col=variable))+
-    ggplot2::geom_point()+ggplot2::geom_line()+
-    ggplot2::theme_bw()+ggplot2::theme(axis.title.y = ggplot2::element_text(face='bold', angle = 90),
-                                       plot.title = ggplot2::element_text(size = ggplot2::rel(1.5),face = 'bold',hjust = 0.5))+
-    ggplot2::scale_y_continuous(labels=scales ::comma)+
-    ggplot2::ggtitle(paste(level,"level","Prediction","Interval"))
-
-
-  #누적 잔차 plot
-  #여기서 누적 잔차는 상한, 하한을 넘지 않는 값들의 잔차를 누적
-  predic.table$residual<-predic.table$value - predic.table$fit
-  predic.table$residual_for_cumul<-predic.table$residual
-  predic.table$residual_for_cumul[predic.table$value < predic.table$lwr |
-                                    predic.table$value > predic.table$upr]<-c(0)
-
-  predic.table$cumulative_sum_of_residual<-cumsum(predic.table$residual_for_cumul)
-
-  if(!is.null(cumul.thre)){
-    predic.table$cumul_upr<-0+cumul.thre
-    predic.table$cumul_lwr<-0-cumul.thre
-  }else {
-    predic.table$cumul_upr<-0+qnorm(1-(1-level)/8)*sd(predic.table$cumulative_sum_of_residual)
-    predic.table$cumul_lwr<-0-qnorm(1-(1-level)/8)*sd(predic.table$cumulative_sum_of_residual)
+detect_anormal.timesuperin <-
+  function(object,
+           newdata,
+           level = 0.95,
+           value,
+           direction = 'both',
+           cumul.thre = NULL) {
+    predic.table <- pred.table.timesuperin(object, newdata, level = level)
+    #신뢰구간, 신뢰수준 기본값은 prediction & 0.95
+    interval.type = 'prediction'
+    #outlier탐지
+    predic.table$value <- value
+    level <- level
+    #names(predic.table)[ncol(predic.table)]<-c('value')
+    
+    #' @import ggplot2
+    #' @importFrom reshape melt
+    #하한,상한, 예측값, 실제값 plot
+    predic.table.melt <-
+      reshape::melt(predic.table[, c('time', 'value', 'fit', 'upr', 'lwr')], id.vars =
+                      'time')
+    plot.ex <-
+      ggplot2::ggplot(predic.table.melt,
+                      ggplot2::aes(time, value, group = variable, col = variable)) +
+      ggplot2::geom_point() + ggplot2::geom_line() +
+      ggplot2::theme_bw() + ggplot2::theme(
+        axis.title.y = ggplot2::element_text(face = 'bold', angle = 90),
+        plot.title = ggplot2::element_text(
+          size = ggplot2::rel(1.5),
+          face = 'bold',
+          hjust = 0.5
+        )
+      ) +
+      ggplot2::scale_y_continuous(labels = scales::comma) +
+      ggplot2::ggtitle(paste(level, "level", "Prediction", "Interval"))
+    
+    
+    #누적 잔차 plot
+    #여기서 누적 잔차는 상한, 하한을 넘지 않는 값들의 잔차를 누적
+    predic.table$residual <- predic.table$value - predic.table$fit
+    predic.table$residual_for_cumul <- predic.table$residual
+    predic.table$residual_for_cumul[predic.table$value < predic.table$lwr |
+                                      predic.table$value > predic.table$upr] <-
+      c(0)
+    
+    predic.table$cumulative_sum_of_residual <-
+      cumsum(predic.table$residual_for_cumul)
+    
+    if (!is.null(cumul.thre)) {
+      predic.table$cumul_upr <- 0 + cumul.thre
+      predic.table$cumul_lwr <- 0 - cumul.thre
+    } else {
+      predic.table$cumul_upr <-
+        0 + qnorm(1 - (1 - level) / 8) * sd(predic.table$cumulative_sum_of_residual)
+      predic.table$cumul_lwr <-
+        0 - qnorm(1 - (1 - level) / 8) * sd(predic.table$cumulative_sum_of_residual)
+    }
+    
+    
+    predic.table.melt <-
+      reshape::melt(predic.table[, c('time',
+                                     'cumulative_sum_of_residual',
+                                     'cumul_upr',
+                                     'cumul_lwr')], id.vars = 'time')
+    plot.resid.ex <-
+      ggplot2::ggplot(predic.table.melt,
+                      ggplot2::aes(time, value, group = variable, col = variable)) +
+      ggplot2::geom_point() + ggplot2::geom_line() +
+      ggplot2::theme_bw() + ggplot2::theme(
+        axis.title.y = ggplot2::element_text(face = 'bold', angle = 90),
+        plot.title = ggplot2::element_text(
+          size = ggplot2::rel(1.5),
+          face = 'bold',
+          hjust = 0.5
+        )
+      ) +
+      ggplot2::scale_y_continuous(labels = scales::comma) +
+      ggplot2::ggtitle("Cumulative Sum of Residual ") + ggplot2::ylab("Cumulative Sum of Residual")
+    
+    #이상치 판별
+    if (direction == "upr") {
+      predic.table$anormal_flag <- c('normal')
+      predic.table$anormal_flag[predic.table$upr < predic.table$value] <-
+        c('upr_anormal')
+    } else if (direction == 'lwr') {
+      predic.table$anormal_flag <- c('normal')
+      predic.table$anormal_flag[predic.table$lwr > predic.table$value] <-
+        c('lwr_anormal')
+    } else if (direction == 'both') {
+      predic.table$anormal_flag <- c('normal')
+      predic.table$anormal_flag[predic.table$lwr > predic.table$value] <-
+        c('lwr_anormal')
+      predic.table$anormal_flag[predic.table$upr < predic.table$value] <-
+        c('upr_anormal')
+    } else {
+      warning(
+        paste(
+          'direction=',
+          direction,
+          "is not supported.",
+          "Try 'upr' or 'lwr' or 'both'.",
+          "Used direction default 'both'"
+        )
+      )
+    }
+    predic.table$anormal_flag[predic.table$cumul_lwr > predic.table$cumulative_sum_of_residual |
+                                predic.table$cumul_upr < predic.table$cumulative_sum_of_residual] <-
+      c('cum_resid_anormal')
+    
+    predic.table$anormal_flag <- as.factor(predic.table$anormal_flag)
+    
+    
+    return(
+      list(
+        "result_table" = predic.table[, -7],
+        "Interval_Plot" = plot.ex,
+        "Cumulative_Sum_of_Residual_Plot" = plot.resid.ex
+      )
+    )
   }
-
-
-  predic.table.melt<-reshape::melt(predic.table[,c('time','cumulative_sum_of_residual',
-                                                   'cumul_upr','cumul_lwr')],id.vars='time')
-  plot.resid.ex<-ggplot2::ggplot(predic.table.melt,ggplot2::aes(time,value,group=variable,col=variable))+
-    ggplot2::geom_point()+ggplot2::geom_line()+
-    ggplot2::theme_bw()+ggplot2::theme(axis.title.y = ggplot2::element_text(face='bold', angle = 90),
-                                       plot.title = ggplot2::element_text(size = ggplot2::rel(1.5),face = 'bold',hjust = 0.5))+
-    ggplot2::scale_y_continuous(labels=scales ::comma)+
-    ggplot2::ggtitle("Cumulative Sum of Residual ")+ggplot2::ylab("Cumulative Sum of Residual")
-
-  #이상치 판별
-  if(direction=="upr"){
-    predic.table$anormal_flag<-c('normal')
-    predic.table$anormal_flag[predic.table$upr < predic.table$value]<-c('upr_anormal')
-  }else if(direction=='lwr'){
-    predic.table$anormal_flag<-c('normal')
-    predic.table$anormal_flag[predic.table$lwr > predic.table$value]<-c('lwr_anormal')
-  }else if(direction=='both'){
-    predic.table$anormal_flag<-c('normal')
-    predic.table$anormal_flag[predic.table$lwr > predic.table$value ]<-c('lwr_anormal')
-    predic.table$anormal_flag[predic.table$upr < predic.table$value ]<-c('upr_anormal')
-  }else {
-    warning(paste('direction=',direction,"is not supported.","Try 'upr' or 'lwr' or 'both'.","Used direction default 'both'" ))
-  }
-  predic.table$anormal_flag[predic.table$cumul_lwr > predic.table$cumulative_sum_of_residual|
-                              predic.table$cumul_upr < predic.table$cumulative_sum_of_residual  ]<-c('cum_resid_anormal')
-
-  predic.table$anormal_flag<-as.factor(predic.table$anormal_flag)
-
-
-  return(list("result_table"=predic.table[,-7],
-              "Interval_Plot"=plot.ex,"Cumulative_Sum_of_Residual_Plot"=plot.resid.ex))
-}
 
 
 ######################################################################################################
@@ -377,13 +497,16 @@ detect_anormal.timesuperin<-function(object,newdata,level=0.95,value,direction='
 #series.order : 구성요소의 수
 #seasonality features matrix return
 fourier_series <- function(data, period, series.order) {
-  if (get_gran(data)=='day'){
+  if (get_gran(data) == 'day') {
     t <- data[['time']] - zoo::as.Date('1970-01-01')
-
+    
   }
-  else if (get_gran(data)=='hr'){
+  else if (get_gran(data) == 'hr') {
     t <- as.numeric(difftime(data[['time']] ,
-                             as.POSIXct(strptime('1970-01-01 00', format="%Y-%m-%d %H", tz="UTC"),units = c('days'))))
+                             as.POSIXct(
+                               strptime('1970-01-01 00', format = "%Y-%m-%d %H", tz = "UTC"),
+                               units = c('days')
+                             )))
   }
   features <- matrix(0, length(t), 2 * series.order)
   for (i in 1:series.order) {
@@ -396,11 +519,13 @@ fourier_series <- function(data, period, series.order) {
 
 #seasonality features matrix 생성
 #prefix : 컬럼명 첨자
-make_seasonality_features <- function(data, period, series.order, prefix) {
-  features <- fourier_series(data, period, series.order)
-  colnames(features) <- paste(prefix, 1:ncol(features), sep = '_delim_')
-  return(data.frame(features))
-}
+make_seasonality_features <-
+  function(data, period, series.order, prefix) {
+    features <- fourier_series(data, period, series.order)
+    colnames(features) <-
+      paste(prefix, 1:ncol(features), sep = '_delim_')
+    return(data.frame(features))
+  }
 
 # seasonality features data frame 생성
 #m : prophet trend 생성을 위한 object
@@ -408,46 +533,36 @@ make_seasonality_features <- function(data, period, series.order, prefix) {
 
 make_all_seasonality_features <- function(m, data) {
   seasonal.features <- data.frame(zeros = rep(0, nrow(data)))
-  if (m$period > 7 & get_gran(data)=='day') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 10, 'yearly'))
-  }  else if (m$period ==7 & get_gran(data)=='day') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 3, 'weekly'))
-  }  else if (m$period > 24 & get_gran(data)=='hr') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 10, 'hourly'))
-  } else if (m$period <= 24 & get_gran(data)=='hr') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 3, 'hourly'))
-  }else if (m$period > 1 & get_gran(data)=='mon') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 10, 'monthly'))
-  } else if (m$period <= 1 & get_gran(data)=='mon') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 3, 'monthly'))
-  }else if (m$period > 60 & get_gran(data)=='min') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 10, 'monthly'))
-  } else if (m$period <= 60 & get_gran(data)=='min') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 3, 'monthly'))
-  }else if (m$period > 60 & get_gran(data)=='sec') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 10, 'monthly'))
-  } else if (m$period <= 60 & get_gran(data)=='sec') {
-    seasonal.features <- cbind(
-      seasonal.features,
-      make_seasonality_features(data, m$period, 3, 'monthly'))
+  if (m$period > 7 & get_gran(data) == 'day') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 10, 'yearly'))
+  }  else if (m$period == 7 & get_gran(data) == 'day') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 3, 'weekly'))
+  }  else if (m$period > 24 & get_gran(data) == 'hr') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 10, 'hourly'))
+  } else if (m$period <= 24 & get_gran(data) == 'hr') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 3, 'hourly'))
+  } else if (m$period > 1 & get_gran(data) == 'mon') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 10, 'monthly'))
+  } else if (m$period <= 1 & get_gran(data) == 'mon') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 3, 'monthly'))
+  } else if (m$period > 60 & get_gran(data) == 'min') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 10, 'monthly'))
+  } else if (m$period <= 60 & get_gran(data) == 'min') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 3, 'monthly'))
+  } else if (m$period > 60 & get_gran(data) == 'sec') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 10, 'monthly'))
+  } else if (m$period <= 60 & get_gran(data) == 'sec') {
+    seasonal.features <- cbind(seasonal.features,
+                               make_seasonality_features(data, m$period, 3, 'monthly'))
   }
   return(seasonal.features)
 }
@@ -457,27 +572,29 @@ make_all_seasonality_features <- function(m, data) {
 #data : 트랜드 생성전 준비가 필요한 데이터로 학습데이터 또는 예측데이터
 #run.ex : 학습데이터일 경우 TRUE
 
-setup_dataframe <- function(m, data,run.ex=F) {
-  value=m$value
-  if (ncol(data)>1) {
+setup_dataframe <- function(m, data, run.ex = F) {
+  value = m$value
+  if (ncol(data) > 1) {
     data[[value]] <- as.numeric(data[[value]])
   }
-
+  
   if (anyNA(data[['time']])) {
     stop('Unable to parse date format in column time. Convert to date format.')
   }
-
-  if(run.ex==T){
+  
+  if (run.ex == T) {
     m$y.scale <- max(data[[value]])
     m$start <- min(data[['time']])
-    m$t.scale <- as.numeric(difftime(max(data[['time']]) , min(data[['time']]),units = c('days')))
+    m$t.scale <-
+      as.numeric(difftime(max(data[['time']]) , min(data[['time']]), units = c('days')))
   }
-
-  data$t <- as.numeric(difftime(data[['time']] , m$start,units = c('days')) / m$t.scale)
-  if (ncol(data)>1) {
+  
+  data$t <-
+    as.numeric(difftime(data[['time']] , m$start, units = c('days')) / m$t.scale)
+  if (ncol(data) > 1) {
     data$y_scaled <- data[[value]] / m$y.scale
   }
-
+  
   return(list("m" = m, "data" = data))
 }
 
@@ -491,28 +608,41 @@ set_changepoints <- function(m) {
         stop('Changepoints must fall within training data.')
       }
     }
-    if (get_gran(m$history)=='day'){
-
-      m$changepoints <- m$history$time[m$history$time>= zoo::as.Date(m$changepoints)]
-      m$changepoints.t <- sort(as.numeric(m$changepoints - m$start) / m$t.scale)
-
-    }else if(get_gran(m$history)=='hr'){
-
-      m$changepoints <- m$history$time[m$history$time>= format_time(m,index ='changepoints' )[['changepoints']]]
-      m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
-
-    }else if(get_gran(m$history)=='mon'){
-
-      m$changepoints <- m$history$time[m$history$time>= format_time(m,index ='changepoints' )[['changepoints']]]
-      m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
-    }else if(get_gran(m$history)=='sec'){
-
-      m$changepoints <- m$history$time[m$history$time>= format_time(m,index ='changepoints' )[['changepoints']]]
-      m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
-    }else if(get_gran(m$history)=='min'){
-
-      m$changepoints <- m$history$time[m$history$time>= format_time(m,index ='changepoints' )[['changepoints']]]
-      m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
+    if (get_gran(m$history) == 'day') {
+      m$changepoints <-
+        m$history$time[m$history$time >= zoo::as.Date(m$changepoints)]
+      m$changepoints.t <-
+        sort(as.numeric(m$changepoints - m$start) / m$t.scale)
+      
+    } else if (get_gran(m$history) == 'hr') {
+      m$changepoints <-
+        m$history$time[m$history$time >= format_time(m, index = 'changepoints')[['changepoints']]]
+      m$changepoints.t <-
+        sort(as.numeric(difftime(
+          m$changepoints , m$start, units = c('days')
+        ) / m$t.scale))
+      
+    } else if (get_gran(m$history) == 'mon') {
+      m$changepoints <-
+        m$history$time[m$history$time >= format_time(m, index = 'changepoints')[['changepoints']]]
+      m$changepoints.t <-
+        sort(as.numeric(difftime(
+          m$changepoints , m$start, units = c('days')
+        ) / m$t.scale))
+    } else if (get_gran(m$history) == 'sec') {
+      m$changepoints <-
+        m$history$time[m$history$time >= format_time(m, index = 'changepoints')[['changepoints']]]
+      m$changepoints.t <-
+        sort(as.numeric(difftime(
+          m$changepoints , m$start, units = c('days')
+        ) / m$t.scale))
+    } else if (get_gran(m$history) == 'min') {
+      m$changepoints <-
+        m$history$time[m$history$time >= format_time(m, index = 'changepoints')[['changepoints']]]
+      m$changepoints.t <-
+        sort(as.numeric(difftime(
+          m$changepoints , m$start, units = c('days')
+        ) / m$t.scale))
     }
   } else {
     if (m$n.changepoints > 0) {
@@ -521,40 +651,57 @@ set_changepoints <- function(m) {
       cp.indexes <- round(seq.int(1, floor(nrow(m$history) * .8),
                                   length.out = (m$n.changepoints + 1)))[-1]
       m$changepoints <- m$history[['time']][cp.indexes]
-
-
-      if (get_gran(m$history)=='day'){
+      
+      
+      if (get_gran(m$history) == 'day') {
         if (length(m$changepoints) > 0) {
           m$changepoints <- zoo::as.Date(m$changepoints)
-          m$changepoints.t <- sort(as.numeric(m$changepoints - m$start) / m$t.scale)
+          m$changepoints.t <-
+            sort(as.numeric(m$changepoints - m$start) / m$t.scale)
         }
-      }else if(get_gran(m$history)=='hr'){
+      } else if (get_gran(m$history) == 'hr') {
         if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m,index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
+          m$changepoints <-
+            format_time(m, index = 'changepoints')[['changepoints']]
+          m$changepoints.t <-
+            sort(as.numeric(
+              difftime(m$changepoints , m$start, units = c('days')) / m$t.scale
+            ))
         }
-      }else if(get_gran(m$history)=='mon'){
+      } else if (get_gran(m$history) == 'mon') {
         if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m,index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
+          m$changepoints <-
+            format_time(m, index = 'changepoints')[['changepoints']]
+          m$changepoints.t <-
+            sort(as.numeric(
+              difftime(m$changepoints , m$start, units = c('days')) / m$t.scale
+            ))
         }
-      }else if(get_gran(m$history)=='min'){
+      } else if (get_gran(m$history) == 'min') {
         if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m,index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
+          m$changepoints <-
+            format_time(m, index = 'changepoints')[['changepoints']]
+          m$changepoints.t <-
+            sort(as.numeric(
+              difftime(m$changepoints , m$start, units = c('days')) / m$t.scale
+            ))
         }
-      }else if(get_gran(m$history)=='sec'){
+      } else if (get_gran(m$history) == 'sec') {
         if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m,index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints , m$start,units = c('days')) / m$t.scale))
+          m$changepoints <-
+            format_time(m, index = 'changepoints')[['changepoints']]
+          m$changepoints.t <-
+            sort(as.numeric(
+              difftime(m$changepoints , m$start, units = c('days')) / m$t.scale
+            ))
         }
       }
-
+      
     } else {
       m$changepoints <- c()
     }
   }
-
+  
   return(m)
 }
 
@@ -590,33 +737,34 @@ get_prophet_stan_model <- function(model) {
   fn <- paste('prophet', model, 'growth.RData', sep = '_')
   ## If the cached model doesn't work, just compile a new one.
   tryCatch({
-    binary <- system.file('libs', Sys.getenv('R_ARCH'), fn,
+    binary <- system.file('libs',
+                          Sys.getenv('R_ARCH'),
+                          fn,
                           package = 'timesuperin',
                           mustWork = TRUE)
     load(binary)
     obj.name <- paste(model, 'growth.stanm', sep = '.')
     stanm <- eval(parse(text = obj.name))
-
+    
   })
 }
 
 # 최종 트랜드를 생성하는 parameter 생성
 #m : prophet trend 생성을 위한 object
-mk.trend.parm<-function(m){
-
+mk.trend.parm <- function(m) {
   #트랜드 변수 생성을 위한 준비 테이블
-  out <- setup_dataframe(m, m$history,run.ex=T)
+  out <- setup_dataframe(m, m$history, run.ex = T)
   history <- out$data
   m <- out$m
   m$history <- history
-
+  
   # seasonality features data frame 생성
   seasonal.features <- make_all_seasonality_features(m, history)
-
+  
   # 변경점 지정과 marix 생성
   m <- set_changepoints(m)
   A <- get_changepoint_matrix(m)
-
+  
   # stan model의 입력값 지정
   dat <- list(
     T = nrow(history),
@@ -630,18 +778,23 @@ mk.trend.parm<-function(m){
     sigma = m$seasonality.prior.scale,
     tau = m$changepoint.prior.scale
   )
-
+  
   model <- get_prophet_stan_model('linear')
-
+  
   stan_init <- function() {
-    list(k = linear_growth_init(history)[1],
-         m = linear_growth_init(history)[2],
-         delta = array(rep(0, length(m$changepoints.t))),
-         beta = array(rep(0, ncol(seasonal.features))),
-         sigma_obs = 1
+    list(
+      k = linear_growth_init(history)[1],
+      m = linear_growth_init(history)[2],
+      delta = array(rep(0, length(
+        m$changepoints.t
+      ))),
+      beta = array(rep(0, ncol(
+        seasonal.features
+      ))),
+      sigma_obs = 1
     )
   }
-
+  
   # stan model을 이용하여 트랜드 parameter 추정
   stan.fit <- rstan::optimizing(
     model,
@@ -687,11 +840,13 @@ piecewise_linear <- function(t, deltas, k, m, changepoint.ts) {
 #y.scale	: 가장큰 실제값
 #changepoints.t	: (변경점 시간 - 데이터 시작 시간) / (데이터 시작 시간 - 데이터 끝시간)
 predict_trend <- function(trend_param, df) {
-  df$t <- as.numeric(difftime(df[['time']] , trend_param$start,units = c('days')) / trend_param$t.scale)
+  df$t <-
+    as.numeric(difftime(df[['time']] , trend_param$start, units = c('days')) / trend_param$t.scale)
   k <- mean(trend_param$params$k, na.rm = TRUE)
   param.m <- mean(trend_param$params$m, na.rm = TRUE)
   deltas <- trend_param$params$delta
   t <- df$t
-  trend <- piecewise_linear(t, deltas, k, param.m, trend_param$changepoints.t)
+  trend <-
+    piecewise_linear(t, deltas, k, param.m, trend_param$changepoints.t)
   return(trend * trend_param$y.scale)
 }
