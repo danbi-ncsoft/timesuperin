@@ -39,10 +39,12 @@ model.timesuperin <- function(data, model.type = 'lm',
     formula.timesuperin = as.formula(paste(names(data)[2], "~."))
   }
 
-  data.info <- data.preprocessing(data, value = gsub("()", "", formula.timesuperin[2]),
-                           period = period, changepoints = changepoints,
-                           changepoint.prior.scale = changepoint.prior.scale, 
-                           use.timevalue = use.timevalue)
+  data.info <- data.preprocessing(data, 
+                                  value = gsub("()", "", formula.timesuperin[2]), 
+                                  period = period, 
+                                  changepoints = changepoints,
+                                  changepoint.prior.scale = changepoint.prior.scale, 
+                                  use.timevalue = use.timevalue)
 
   train.data <- subset(data.info[[1]], select = -c(time))
   if (model.type == "rlm") {
@@ -72,7 +74,7 @@ model.timesuperin <- function(data, model.type = 'lm',
 ###시간 변수 생성###
 #입력데이터들의 형식을 받아 시간 format으로 변경
 #' @importFrom stringr str_detect
-format_time <- function(data, index='time') {
+format_time <- function(data) {
   if (class(data)[1] == "POSIXlt" | class(data)[1] == "POSIXct" ) {
     return(data)
   }
@@ -124,7 +126,7 @@ format_time <- function(data, index='time') {
 #입력데이터의 시간 간격을 구분
 get_gran <- function(data, index='time') {
   n = length(data[[index]])
-  gran = round(difftime(max(data[[index]]),sort(data[[index]], partial=n-1)[n-1], units="secs"))
+  gran = round(difftime(max(data[[index]]), sort(data[[index]], partial=n-1)[n-1], units="secs"))
   if (gran >= 2419200){
     return("mon")
   }
@@ -180,8 +182,13 @@ timevalue <- function(data){
 # changepoints: 데이터의 특성 변경점 , 데이터의 시간단위와 일치
 # changepoint.prior.scale: 변경점 선택의 유연성을 조정하는 변수, 큰값은 많은수를 작은값은 적은수의 변경점 허용
 #' @importFrom dplyr arrange
-data.preprocessing <- function(data, value = NULL, period = NULL, changepoints = NULL,
-                        n.changepoints = NULL, changepoint.prior.scale = NULL, use.timevalue = TRUE) {
+data.preprocessing <- function(data, 
+                               value = NULL, 
+                               period = NULL, 
+                               changepoints = NULL,
+                               n.changepoints = NULL, 
+                               changepoint.prior.scale = NULL, 
+                               use.timevalue = TRUE) {
 
   #시간데이터 입력 형식에 따른 시간 포맷으로 변경
   data$time <- format_time(data$time)
@@ -217,9 +224,15 @@ data.preprocessing <- function(data, value = NULL, period = NULL, changepoints =
     data <- data.frame(data, 
                        trend_value = predict_trend(m, data))
   }
-  return(list(data = data, time_interval = get_gran(data), time_period = period,
-              trend_param = list(params = m$params, start = m$start, t.scale = m$t.scale,
-                               y.scale = m$y.scale, changepoints = m$changepoints, changepoints.t = m$changepoints.t)))
+  return(list(data = data, 
+              time_interval = get_gran(data), 
+              time_period = period,
+              trend_param = list(params = m$params, 
+                                 start = m$start, 
+                                 t.scale = m$t.scale,
+                                 y.scale = m$y.scale, 
+                                 changepoints = m$changepoints, 
+                                 changepoints.t = m$changepoints.t)))
 }
 
 
@@ -229,7 +242,10 @@ data.preprocessing <- function(data, value = NULL, period = NULL, changepoints =
 #data : 예측 데이터
 #data의 시간값을 가지는 컬럼명은 time으로 지정해줘야함
 #trend_param : 예측시 사용되는 트랜드 생성 모수
-make.target_data <- function(data, use.time = TRUE, trend = TRUE, trend_param = NULL) {
+make.target_data <- function(data, 
+                             use.time = TRUE, 
+                             trend = TRUE, 
+                             trend_param = NULL) {
   #시간데이터 입력 형식에 따른 시간 포맷으로 변경
   data$time <- format_time(data$time)
   if (use.time) {
@@ -261,14 +277,19 @@ make.target_data <- function(data, use.time = TRUE, trend = TRUE, trend_param = 
 #' @param level Tolerance/confidence level.
 #' @keywords predict
 #' @export
-pred.table.timesuperin <- function(object, newdata, level = 0.95) {
+pred.table.timesuperin <- function(object, 
+                                   newdata, 
+                                   level = 0.95) {
   target <- make.target_data(newdata, 
                              use.time = object$use.timevalue, 
                              trend = object$trend, 
                              trend_param = object$trend_params)
 
   predic.table <- data.frame(time = target[['time']], 
-                             predict(object$lm_model, newdata = target, interval='prediction', level = level))
+                             predict(object$lm_model, 
+                                     newdata = target, 
+                                     interval='prediction', 
+                                     level = level))
   return(predic.table)
 }
 
@@ -294,7 +315,12 @@ pred.table.timesuperin <- function(object, newdata, level = 0.95) {
 #' @keywords Detection
 #' @export
 
-detect_anormal.timesuperin <- function(object, newdata, level = 0.95, value, direction='both', cumul.thre = NULL) {
+detect_anormal.timesuperin <- function(object, 
+                                       newdata, 
+                                       level = 0.95, 
+                                       value, 
+                                       direction='both', 
+                                       cumul.thre = NULL) {
 
   predic.table <- pred.table.timesuperin(object, newdata, level)
   #신뢰구간, 신뢰수준 기본값은 prediction & 0.95
@@ -376,7 +402,9 @@ detect_anormal.timesuperin <- function(object, newdata, level = 0.95, value, dir
 #period : 데이터 주기
 #series.order : 구성요소의 수
 #seasonality features matrix return
-fourier_series <- function(data, period, series.order) {
+fourier_series <- function(data, 
+                           period, 
+                           series.order) {
   gran <- get_gran(data)
   if (gran == 'day') {
     t <- data[['time']] - zoo::as.Date('1970-01-01')
@@ -397,7 +425,10 @@ fourier_series <- function(data, period, series.order) {
 
 #seasonality features matrix 생성
 #prefix : 컬럼명 첨자
-make_seasonality_features <- function(data, period, series.order, prefix) {
+make_seasonality_features <- function(data, 
+                                      period, 
+                                      series.order, 
+                                      prefix) {
   features <- fourier_series(data, period, series.order)
   colnames(features) <- paste(prefix, 1:ncol(features), sep = '_delim_')
   return(data.frame(features))
@@ -511,7 +542,7 @@ set_changepoints <- function(m) {
         }
       } else {
         m$changepoints <- format_time(m$changepoints)
-        m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start,units = c('days')) / m$t.scale))
+        m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
       } 
     } else {
       m$changepoints <- c()
@@ -520,7 +551,6 @@ set_changepoints <- function(m) {
 
   return(m)
 }
-
 
 # 변경점 이전은 0, 이후는 1인 값을 가지는 matrix 생성
 #m : prophet trend 생성을 위한 object
