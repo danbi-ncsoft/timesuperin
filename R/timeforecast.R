@@ -12,7 +12,7 @@
 
 #' @importFrom MASS rlm
 #' @import Rcpp
-timesuperin <- function(data, model.type = 'lm',
+model.timesuperin <- function(data, model.type = 'lm',
                               formula = NULL, 
                               use.timevalue = TRUE,
                               period = 24, 
@@ -562,9 +562,9 @@ get_changepoint_matrix <- function(m) {
 linear_growth_init <- function(df) {
   i0 <- which.min(as.POSIXct(df[['time']]))
   i1 <- which.max(as.POSIXct(df[['time']]))
-  t <- df$t[i1] - df$t[i0]
+  T <- df$t[i1] - df$t[i0]
   # Initialize the rate
-  k <- (df$y_scaled[i1] - df$y_scaled[i0]) / t
+  k <- (df$y_scaled[i1] - df$y_scaled[i0]) / T
   # And the offset
   m <- df$y_scaled[i0] - k * df$t[i0]
   return(c(k, m))
