@@ -490,16 +490,7 @@ set_changepoints <- function(m) {
     if (gran == 'day'){
       m$changepoints <- m$history$time[m$history$time >= zoo::as.Date(m$changepoints)]
       m$changepoints.t <- sort(as.numeric(m$changepoints - m$start) / m$t.scale)
-    } else if(gran == 'hr'){
-      m$changepoints <- m$history$time[m$history$time >= temp]
-      m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
-    } else if(gran == 'mon'){
-      m$changepoints <- m$history$time[m$history$time >= temp]
-      m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
-    } else if(gran == 'sec'){
-      m$changepoints <- m$history$time[m$history$time >= temp]
-      m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
-    } else if(gran == 'min'){
+    } else {
       m$changepoints <- m$history$time[m$history$time >= temp]
       m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
     }
@@ -544,13 +535,13 @@ get_changepoint_matrix <- function(m) {
 # 시계열의 첫번째와 마지막 포인트를 이용한 트랜드 생성에 필요한 초기 parameter 생성
 #df : 학습데이터
 linear_growth_init <- function(df) {
-  i0 <- which.min(as.POSIXct(df[['time']]))
-  i1 <- which.max(as.POSIXct(df[['time']]))
-  T <- df$t[i1] - df$t[i0]
+  i <- which.min(as.POSIXct(df[['time']]))
+  j <- which.max(as.POSIXct(df[['time']]))
+  time.gap <- df$t[j] - df$t[i]
   # Initialize the rate
-  k <- (df$y_scaled[i1] - df$y_scaled[i0]) / T
+  k <- (df$y_scaled[j] - df$y_scaled[i]) / time.gap
   # And the offset
-  m <- df$y_scaled[i0] - k * df$t[i0]
+  m <- df$y_scaled[i] - k * df$t[i]
   return(c(k, m))
 }
 
@@ -576,7 +567,7 @@ get_stan_model <- function(model) {
 mk.trend.parm<-function(m) {
 
   #트랜드 변수 생성을 위한 준비 테이블
-  out <- setup_dataframe(m, m$history, run.ex=T)
+  out <- setup_dataframe(m, m$history, run.ex = TRUE)
   history <- out$data
   m <- out$m
   m$history <- history
@@ -658,7 +649,7 @@ piecewise_linear <- function(t, deltas, k, m, changepoint.ts) {
 #y.scale	: 가장큰 실제값
 #changepoints.t	: (변경점 시간 - 데이터 시작 시간) / (데이터 시작 시간 - 데이터 끝시간)
 predict_trend <- function(trend_param, df) {
-  df$t <- as.numeric(difftime(df[['time']] , trend_param$start,units = c('days')) / trend_param$t.scale)
+  df$t <- as.numeric(difftime(df[['time']], trend_param$start, units = c('days')) / trend_param$t.scale)
   k <- mean(trend_param$params$k, na.rm = TRUE)
   param.m <- mean(trend_param$params$m, na.rm = TRUE)
   deltas <- trend_param$params$delta
