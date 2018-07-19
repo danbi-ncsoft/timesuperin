@@ -73,47 +73,47 @@ model.timesuperin <- function(data, model.type = 'lm',
 #입력데이터들의 형식을 받아 시간 format으로 변경
 #' @importFrom stringr str_detect
 format_time <- function(data, index='time') {
-  if (class(data[[index]])[1] == "POSIXlt" | class(data[[index]])[1] == "POSIXct" ) {
+  if (class(data)[1] == "POSIXlt" | class(data)[1] == "POSIXct" ) {
     return(data)
   }
-  if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} \\+\\d{4}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H:%M:%S", tz="UTC"))
+  if (stringr::str_detect(data[1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} \\+\\d{4}$")) {
+    data <- as.POSIXct(strptime(data, format="%Y-%m-%d %H:%M:%S", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H:%M:%S", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$")) {
+    data <- as.POSIXct(strptime(data, format="%Y-%m-%d %H:%M:%S", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H:%M", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$")) {
+    data <- as.POSIXct(strptime(data, format="%Y-%m-%d %H:%M", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{1}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{4}-\\d{2}-\\d{2} \\d{1}$")) {
+    data <- as.POSIXct(strptime(data, format="%Y-%m-%d %H", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y-%m-%d %H", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{4}-\\d{2}-\\d{2} \\d{2}$")) {
+    data <- as.POSIXct(strptime(data, format="%Y-%m-%d %H", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}\\d{2}\\d{2} \\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y%m%d %H", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{4}\\d{2}\\d{2} \\d{2}$")) {
+    data <- as.POSIXct(strptime(data, format="%Y%m%d %H", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}-\\d{2}-\\d{2}$")) {
-    data[[index]] <- as.Date(data[[index]], "%Y-%m-%d")
+  else if (stringr::str_detect(data[1], "^\\d{4}-\\d{2}-\\d{2}$")) {
+    data <- as.Date(data, "%Y-%m-%d")
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{2}/\\d{2}/\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%m/%d/%y", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{2}/\\d{2}/\\d{2}$")) {
+    data <- as.POSIXct(strptime(data, format="%m/%d/%y", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{2}/\\d{2}/\\d{4}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%m/%d/%Y", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{2}/\\d{2}/\\d{4}$")) {
+    data <- as.POSIXct(strptime(data, format="%m/%d/%Y", tz="UTC"))
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}\\d{2}\\d{2}$")) {
-    data[[index]] <- as.Date(data[[index]], "%Y%m%d")
+  else if (stringr::str_detect(data[1], "^\\d{4}\\d{2}\\d{2}$")) {
+    data <- as.Date(data, "%Y%m%d")
   }
-  else if (stringr::str_detect(data[[index]][1], "^\\d{4}/\\d{2}/\\d{2}/\\d{2}$")) {
-    data[[index]] <- as.POSIXct(strptime(data[[index]], format="%Y/%m/%d/%H", tz="UTC"))
+  else if (stringr::str_detect(data[1], "^\\d{4}/\\d{2}/\\d{2}/\\d{2}$")) {
+    data <- as.POSIXct(strptime(data, format="%Y/%m/%d/%H", tz="UTC"))
   }
-  else if( stringr::str_detect(data[[index]][1],"^\\d{4}-\\d{2}$")){
-    data[[index]] <- as.Date(paste0((data[[index]]),"-01"),"%Y-%m-%d")
+  else if( stringr::str_detect(data[1],"^\\d{4}-\\d{2}$")){
+    data <- as.Date(paste0((data),"-01"),"%Y-%m-%d")
   }
-  else if( stringr::str_detect(data[[index]][1],"^\\d{4}/\\d{2}$")){
-    data[[index]] <- as.Date(paste0((data[[index]]),"/01"),"%Y/%m/%d")
+  else if( stringr::str_detect(data[1],"^\\d{4}/\\d{2}$")){
+    data <- as.Date(paste0((data),"/01"),"%Y/%m/%d")
   }
 
   return(data)
@@ -184,7 +184,7 @@ data.preprocessing <- function(data, value = NULL, period = NULL, changepoints =
                         n.changepoints = NULL, changepoint.prior.scale = NULL, use.timevalue = TRUE) {
 
   #시간데이터 입력 형식에 따른 시간 포맷으로 변경
-  data <- format_time(data)
+  data$time <- format_time(data$time)
   data <- dplyr::arrange(data, data[['time']])
   
   #트랜드 변수 생성#
@@ -231,7 +231,7 @@ data.preprocessing <- function(data, value = NULL, period = NULL, changepoints =
 #trend_param : 예측시 사용되는 트랜드 생성 모수
 make.target_data <- function(data, use.time = TRUE, trend = TRUE, trend_param = NULL) {
   #시간데이터 입력 형식에 따른 시간 포맷으로 변경
-  data <- format_time(data)
+  data$time <- format_time(data$time)
   if (use.time) {
     data$time_value <- as.factor(timevalue(data))
   }
@@ -486,20 +486,21 @@ set_changepoints <- function(m) {
         stop('Changepoints must fall within training data.')
       }
     }
+    temp <- format_time(m$changepoints)
     if (gran == 'day'){
       m$changepoints <- m$history$time[m$history$time >= zoo::as.Date(m$changepoints)]
       m$changepoints.t <- sort(as.numeric(m$changepoints - m$start) / m$t.scale)
     } else if(gran == 'hr'){
-      m$changepoints <- m$history$time[m$history$time >= format_time(m, index ='changepoints' )[['changepoints']]]
+      m$changepoints <- m$history$time[m$history$time >= temp]
       m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
     } else if(gran == 'mon'){
-      m$changepoints <- m$history$time[m$history$time >= format_time(m, index ='changepoints' )[['changepoints']]]
+      m$changepoints <- m$history$time[m$history$time >= temp]
       m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
     } else if(gran == 'sec'){
-      m$changepoints <- m$history$time[m$history$time >= format_time(m, index ='changepoints' )[['changepoints']]]
+      m$changepoints <- m$history$time[m$history$time >= temp]
       m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
     } else if(gran == 'min'){
-      m$changepoints <- m$history$time[m$history$time >= format_time(m, index ='changepoints' )[['changepoints']]]
+      m$changepoints <- m$history$time[m$history$time >= temp]
       m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start, units = c('days')) / m$t.scale))
     }
   } else {
@@ -517,27 +518,10 @@ set_changepoints <- function(m) {
           m$changepoints <- zoo::as.Date(m$changepoints)
           m$changepoints.t <- sort(as.numeric(m$changepoints - m$start) / m$t.scale)
         }
-      } else if (gran == 'hr') {
-        if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m, index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start,units = c('days')) / m$t.scale))
-        }
-      } else if (gran == 'mon') {
-        if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m, index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start,units = c('days')) / m$t.scale))
-        }
-      } else if(gran == 'min') {
-        if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m, index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start,units = c('days')) / m$t.scale))
-        }
-      } else if(gran == 'sec') {
-        if (length(m$changepoints) > 0) {
-          m$changepoints <- format_time(m, index ='changepoints' )[['changepoints']]
-          m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start,units = c('days')) / m$t.scale))
-        }
-      }
+      } else {
+        m$changepoints <- format_time(m$changepoints)
+        m$changepoints.t <- sort(as.numeric(difftime(m$changepoints, m$start,units = c('days')) / m$t.scale))
+      } 
     } else {
       m$changepoints <- c()
     }
