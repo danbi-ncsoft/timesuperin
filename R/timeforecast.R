@@ -294,7 +294,7 @@ pred.table.timesuperin <- function(object, newdata, level = 0.95) {
 #' @keywords Detection
 #' @export
 
-detect_anormal.timesuperin <- function(object, newdata, level = 0.95, value,direction='both', cumul.thre = NULL) {
+detect_anormal.timesuperin <- function(object, newdata, level = 0.95, value, direction='both', cumul.thre = NULL) {
 
   predic.table <- pred.table.timesuperin(object, newdata, level)
   #신뢰구간, 신뢰수준 기본값은 prediction & 0.95
